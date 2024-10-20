@@ -2,6 +2,7 @@ mod config;
 mod utils;
 use std::{fs, path::Path};
 
+use serde_json::{Map, Value};
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -155,6 +156,99 @@ fn create_locale(path: &str, locale_rq: &str) -> bool {
     return true;
 }
 
+#[tauri::command]
+fn get_locales_files(project: &str, locale: &str) -> Option<Vec<String>> {
+    let path = std::path::Path::new(project);
+
+    let locales_files = utils::get_locales_files_directory(path, locale);
+
+    if locales_files.is_err() {
+        return None;
+    }
+
+    match locales_files {
+        Ok(files) => {
+            let mut files_rs = vec![];
+
+            if files.is_empty() {
+                return None;
+            }
+
+            for file in files {
+                let path_file = Path::new(&file);
+                let file_name = utils::get_name(&path_file.to_path_buf());
+
+                files_rs.push(file_name.split('.').next().unwrap().to_string());
+            }
+
+            return Some(files_rs);
+        }
+        Err(_) => {
+            println!("Error reading directory");
+            return None;
+        }
+    }
+}
+
+#[tauri::command]
+fn get_json_file(project: &str, locale: &str, file: &str) -> Option<Map<String, Value>> {
+    let path = std::path::Path::new(project);
+    let locales = path.join(config::get_path_locales());
+
+    if !locales.exists() {
+        return None;
+    }
+
+    let locale_path = locales.join(locale);
+
+    if !locale_path.exists() {
+        return None;
+    }
+
+    let file_path = locale_path.join(format!("{}.json", file.to_owned()).as_str());
+
+    if !file_path.exists() {
+        return None;
+    }
+
+    let file_content = std::fs::read_to_string(file_path).unwrap();
+    let file_content_json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
+
+    return Some(file_content_json.as_object().unwrap().clone());
+}
+
+#[tauri::command]
+fn save_json_file(project: &str, locale: &str, file: &str, data: Map<String, Value>) -> bool {
+    let path = std::path::Path::new(project);
+    let locales = path.join(config::get_path_locales());
+
+    if !locales.exists() {
+        return false;
+    }
+
+    let locale_path = locales.join(locale);
+
+    if !locale_path.exists() {
+        return false;
+    }
+
+    let file_path = locale_path.join(format!("{}.json", file.to_owned()).as_str());
+
+    if !file_path.exists() {
+        return false;
+    }
+
+    let result_json = serde_json::to_string_pretty(&data).unwrap();
+
+    match fs::write(file_path, result_json) {
+        Ok(_) => true,
+        Err(e) => {
+            println!("Error al guardar el archivo: {:?}", e);
+            false
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let migrations =
@@ -185,6 +279,9 @@ pub fn run() {
             get_locales,
             get_dependencies,
             create_locale,
+            get_locales_files,
+            get_json_file,
+            save_json_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

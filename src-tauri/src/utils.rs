@@ -17,7 +17,6 @@ pub fn get_locales_files(project_directory: &Path) -> Result<Vec<String>, std::i
 
     match locales.read_dir() {
         Ok(dir) => {
-            let mut locales_files = vec![];
             let mut locale: String = String::new();
 
             for entry in dir {
@@ -34,24 +33,7 @@ pub fn get_locales_files(project_directory: &Path) -> Result<Vec<String>, std::i
                 return Ok(vec![]);
             }
 
-            let locale_directory_path = locales.join(locale);
-
-            for entry in locale_directory_path.read_dir().unwrap() {
-                if let Ok(entry) = entry {
-                    let file_name = entry.file_name().into_string().unwrap();
-                    if file_name != "_index.json" {
-                        locales_files.push(
-                            locale_directory_path
-                                .join(file_name)
-                                .to_str()
-                                .unwrap()
-                                .to_string(),
-                        );
-                    }
-                }
-            }
-
-            return Ok(locales_files);
+            return get_locales_files_directory(project_directory, &locale);
         }
         Err(_) => {
             println!("Error reading directory");
@@ -224,7 +206,7 @@ pub fn generate_translations_ts(project: &str) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn get_name(locale_path: &PathBuf) -> String {
+pub fn get_name(locale_path: &PathBuf) -> String {
     locale_path
         .file_name()
         .unwrap()
@@ -342,4 +324,35 @@ fn recursive_keys(obj: Value, prefix: String) -> Map<String, Value> {
     }
 
     keys
+}
+
+pub fn get_locales_files_directory(
+    project_directory: &Path,
+    locale: &str,
+) -> Result<Vec<String>, std::io::Error> {
+    let locales = project_directory.join(get_path_locales());
+
+    if !locales.exists() {
+        return Ok(vec![]);
+    }
+
+    let mut locales_files = vec![];
+    let locale_directory_path = locales.join(locale);
+
+    for entry in locale_directory_path.read_dir().unwrap() {
+        if let Ok(entry) = entry {
+            let file_name = entry.file_name().into_string().unwrap();
+            if file_name != "_index.json" {
+                locales_files.push(
+                    locale_directory_path
+                        .join(file_name)
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
+                );
+            }
+        }
+    }
+
+    return Ok(locales_files);
 }
