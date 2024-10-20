@@ -4,6 +4,9 @@ import { ProjectService } from "$lib/services/ProjectService.svelte";
 import { invoke } from "@tauri-apps/api/core";
 import type { TProjects } from "$lib/types/project";
 
+export const prerender = false;
+export const ssr = false
+
 export const load = (async ({ params }) => {
   if (!params.project) {
     return error(404, "Project not found");
