@@ -249,6 +249,104 @@ fn save_json_file(project: &str, locale: &str, file: &str, data: Map<String, Val
     }
 }
 
+#[tauri::command]
+fn create_json_file(project: &str, _locale: &str, file: &str) -> bool {
+    let path = std::path::Path::new(project);
+    let locales = path.join(config::get_path_locales());
+
+    if !locales.exists() {
+        return false;
+    }
+
+    for locale in get_locales(project) {
+        let file_path = locales
+            .join(locale.clone())
+            .join(format!("{}.json", file.to_owned()).as_str());
+
+        if file_path.exists() {
+            continue;
+        }
+
+        match fs::write(file_path, "{}") {
+            Ok(_) => {}
+            Err(e) => {
+                println!("Error al guardar el archivo: {:?}", e);
+                continue;
+            }
+        }
+
+        match utils::generate_files(project, &locale) {
+            Ok(()) => {}
+            Err(e) => {
+                println!("Error al generar el archivo 'index.ts': {}", e);
+
+                continue;
+            }
+        }
+
+        println!("Se guardo el archivo '{}'", file);
+    }
+
+    return true;
+}
+
+#[tauri::command]
+fn create_key_json_file(project: &str, _locale: &str, file: &str, name: &str) -> bool {
+    let path = std::path::Path::new(project);
+    let locales = path.join(config::get_path_locales());
+
+    if !locales.exists() {
+        return false;
+    }
+
+    for locale in get_locales(project) {
+        let file_path = locales
+            .join(locale.clone())
+            .join(format!("{}.json", file.to_owned()).as_str());
+
+        if !file_path.exists() {
+            continue;
+        }
+
+        let file_content = std::fs::read_to_string(file_path.clone()).unwrap();
+        let mut file_content_json: serde_json::Value = serde_json::from_str(&file_content).unwrap();
+
+        let keys: Vec<&str> = name.split('.').collect();
+        let value = serde_json::Value::String("".to_string());
+
+        if keys.len() > 1 {
+            let new_json = utils::build_deep_map(file_content_json, keys.as_slice());
+
+            println!("{:?}", new_json);
+
+            file_content_json = new_json;
+        }
+
+        let final_json_string = serde_json::to_string_pretty(&file_content_json).unwrap();
+
+        match fs::write(file_path.clone(), final_json_string) {
+            Ok(_) => {}
+            Err(e) => {
+                println!("Error al guardar el archivo: {:?}", e);
+                continue;
+            }
+        }
+
+        println!("Se guardo el archivo '{}'", file);
+
+        match utils::generate_files(project, &locale) {
+            Ok(()) => {}
+            Err(e) => {
+                println!("Error al generar el archivo 'index.ts': {}", e);
+
+                continue;
+            }
+        }
+    }
+
+    return true;
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let migrations =
@@ -282,6 +380,8 @@ pub fn run() {
             get_locales_files,
             get_json_file,
             save_json_file,
+            create_json_file,
+            create_key_json_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,6 +1,6 @@
 {
   "name": "svelte-cli",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "",
   "type": "module",
   "scripts": {
@@ -18,11 +18,11 @@
     "@tauri-apps/plugin-sql": "~2"
   },
   "devDependencies": {
-    "@r2digisolutions/svelte-ui": "^0.5.0",
+    "@r2digisolutions/svelte-ui": "^1.1.0",
     "@sveltejs/adapter-static": "^3.0.5",
     "@sveltejs/kit": "^2.7.2",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
-    "@tauri-apps/cli": ">=2.0.3",
+    "@tauri-apps/cli": ">=2.0.4",
     "@tauri-apps/plugin-dialog": "^2.0.1",
     "autoprefixer": "^10.4.20",
     "flowbite": "^2.5.2",
@@ -30,11 +30,11 @@
     "postcss": "^8.4.47",
     "prettier": "^3.3.3",
     "prettier-plugin-svelte": "^3.2.7",
-    "svelte": "^5.0.3",
+    "svelte": "^5.0.5",
     "svelte-check": "^4.0.5",
     "tailwindcss": "^3.4.14",
     "tslib": "^2.8.0",
     "typescript": "^5.6.3",
-    "vite": "^5.4.9"
+    "vite": "^5.4.10"
   }
 }

@@ -2,6 +2,7 @@ use serde_json::{Map, Value};
 
 use crate::config::{self, get_path_locales};
 use std::{
+    collections::HashMap,
     fs::{self},
     io::{self},
     path::{Path, PathBuf},
@@ -355,4 +356,57 @@ pub fn get_locales_files_directory(
     }
 
     return Ok(locales_files);
+}
+
+fn recursive_deep_map(value: &mut Value) {
+    *value = match value {
+        Value::Object(map) => {
+            let mut new_map = Map::new();
+            for (key, value) in map {
+                let mut new_value = value.clone();
+                recursive_deep_map(&mut new_value);
+                new_map.insert(key.clone(), new_value);
+            }
+            Value::Object(new_map)
+        }
+        _ => value.clone(),
+    };
+}
+
+/// Función que construye un mapa anidado en un objeto JSON utilizando claves.
+pub fn build_deep_map(mut json: Value, keys: &[&str]) -> Value {
+    let mut current = &mut json;
+
+    for (i, key) in keys.iter().enumerate() {
+        // Verificamos si la clave actual ya existe, si no, insertamos un nuevo objeto
+        if !current.get(key).is_some() {
+            if i == keys.len() - 1 {
+                // Si es la última clave, añadimos una cadena vacía como valor
+                current[key] = Value::String(keys.join(".").to_string());
+            } else {
+                // De lo contrario, insertamos un objeto vacío y seguimos anidando
+                current[key] = Value::Object(Map::new());
+            }
+        }
+        // Actualizamos `current` para que apunte al siguiente nivel del objeto
+        current = current.get_mut(key).unwrap();
+    }
+
+    json
+}
+
+pub fn merge_json_objects(dest: &mut Value, src: &Value) {
+    if let Value::Object(dest_map) = dest {
+        if let Value::Object(src_map) = src {
+            for (key, value) in src_map {
+                if let Some(dest_value) = dest_map.get_mut(key) {
+                    // Si la clave existe en ambos mapas y son objetos, combinamos recursivamente.
+                    merge_json_objects(dest_value, value);
+                } else {
+                    // Si la clave no existe, la añadimos.
+                    dest_map.insert(key.clone(), value.clone());
+                }
+            }
+        }
+    }
 }

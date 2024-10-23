@@ -10,8 +10,6 @@
   const actions = {
     openDirectory: () => project?.openDirectory(),
   };
-
-  $inspect($page.route.id);
 </script>
 
 <HeaderSection
